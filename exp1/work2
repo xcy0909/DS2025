@@ -1,0 +1,364 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_EXPR_LEN 100
+#define MAX_STACK_SIZE 100
+#define N_OPTR 14  // 运算符总数（包含 SIN, COS, TAN, LOG, LN）
+
+// 运算符枚举
+typedef enum {
+    ADD, SUB, MUL, DIV, POW, FAC, L_P, R_P, EOE, SIN, COS, TAN, LOG, LN
+} Operator;
+
+// 栈结构（用于存储操作数）
+typedef struct {
+    double data[MAX_STACK_SIZE];
+    int top;
+} OpndStack;
+
+// 栈结构（用于存储运算符）
+typedef struct {
+    Operator data[MAX_STACK_SIZE];
+    int top;
+} OptrStack;
+
+// 初始化操作数栈
+void initOpndStack(OpndStack *s) {
+    s->top = -1;
+}
+
+// 初始化运算符栈
+void initOptrStack(OptrStack *s) {
+    s->top = -1;
+}
+
+// 判断操作数栈是否为空
+int isOpndEmpty(OpndStack *s) {
+    return s->top == -1;
+}
+
+// 判断运算符栈是否为空
+int isOptrEmpty(OptrStack *s) {
+    return s->top == -1;
+}
+
+// 操作数入栈
+void pushOpnd(OpndStack *s, double val) {
+    if (s->top < MAX_STACK_SIZE - 1) {
+        s->data[++(s->top)] = val;
+    } else {
+        printf("操作数栈溢出\n");
+        exit(1);
+    }
+}
+
+// 运算符入栈
+void pushOptr(OptrStack *s, Operator op) {
+    if (s->top < MAX_STACK_SIZE - 1) {
+        s->data[++(s->top)] = op;
+    } else {
+        printf("运算符栈溢出\n");
+        exit(1);
+    }
+}
+
+// 操作数出栈
+double popOpnd(OpndStack *s) {
+    if (!isOpndEmpty(s)) {
+        return s->data[(s->top)--];
+    } else {
+        printf("操作数栈为空\n");
+        exit(1);
+    }
+}
+
+// 运算符出栈
+Operator popOptr(OptrStack *s) {
+    if (!isOptrEmpty(s)) {
+        return s->data[(s->top)--];
+    } else {
+        printf("运算符栈为空\n");
+        exit(1);
+    }
+}
+
+// 获取栈顶操作数
+double getTopOpnd(OpndStack *s) {
+    if (!isOpndEmpty(s)) {
+        return s->data[s->top];
+    } else {
+        printf("操作数栈为空\n");
+        exit(1);
+    }
+}
+
+// 获取栈顶运算符
+Operator getTopOptr(OptrStack *s) {
+    if (!isOptrEmpty(s)) {
+        return s->data[s->top];
+    } else {
+        printf("运算符栈为空\n");
+        exit(1);
+    }
+}
+
+// 运算符优先级表
+const char pri[N_OPTR][N_OPTR] = {
+    /*          +    -    *    /    ^    !    (    )    \0   SIN  COS  TAN  LOG  LN */
+    /* + */   '>', '>', '<', '<', '<', '<', '<', '>', '>', '>', '>', '>', '>', '>',
+    /* - */   '>', '>', '<', '<', '<', '<', '<', '>', '>', '>', '>', '>', '>', '>',
+    /* * */   '>', '>', '>', '>', '<', '<', '<', '>', '>', '>', '>', '>', '>', '>',
+    /* / */   '>', '>', '>', '>', '<', '<', '<', '>', '>', '>', '>', '>', '>', '>',
+    /* ^ */   '>', '>', '>', '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>',
+    /* ! */   '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>',
+    /* ( */   '<', '<', '<', '<', '<', '<', '<', '=', ' ', '<', '<', '<', '<', '<',
+    /* ) */   ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    /* \0*/   '<', '<', '<', '<', '<', '<', '<', ' ', '=', '<', '<', '<', '<', '<',
+    /* SIN*/  '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>',
+    /* COS*/  '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>',
+    /* TAN*/  '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>',
+    /* LOG*/  '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>',
+    /* LN */  '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>', '>', '>'
+};
+
+// 从字符串中获取下一个运算符或操作数
+int getNextToken(const char *expr, int *pos, double *num, Operator *op) {
+    char c = expr[*pos];
+    if (c == '\0') {
+        *op = EOE;
+        return 0;  // 运算符
+    } else if (c >= '0' && c <= '9') {
+        // 解析数字
+        sscanf(&expr[*pos], "%lf", num);
+        while (expr[*pos] >= '0' && expr[*pos] <= '9' || expr[*pos] == '.') {
+            (*pos)++;
+        }
+        return 1;  // 操作数
+    } else {
+        // 解析运算符
+        (*pos)++;
+        switch (c) {
+            case '+': *op = ADD; break;
+            case '-': *op = SUB; break;
+            case '*': *op = MUL; break;
+            case '/': *op = DIV; break;
+            case '^': *op = POW; break;
+            case '!': *op = FAC; break;
+            case '(': *op = L_P; break;
+            case ')': *op = R_P; break;
+            case 's':
+                if (expr[*pos] == 'i' && expr[*pos + 1] == 'n') {
+                    *op = SIN;
+                    (*pos) += 2;
+                } else {
+                    printf("无效的函数名: s%c%c\n", expr[*pos], expr[*pos+1]);
+                    return -1; // 错误
+                }
+                break;
+            case 'c':
+                if (expr[*pos] == 'o' && expr[*pos + 1] == 's') {
+                    *op = COS;
+                    (*pos) += 2;
+                } else {
+                    printf("无效的函数名: c%c%c\n", expr[*pos], expr[*pos+1]);
+                    return -1; // 错误
+                }
+                break;
+            case 't':
+                if (expr[*pos] == 'a' && expr[*pos + 1] == 'n') {
+                    *op = TAN;
+                    (*pos) += 2;
+                } else {
+                    printf("无效的函数名: t%c%c\n", expr[*pos], expr[*pos+1]);
+                    return -1; // 错误
+                }
+                break;
+            case 'l':
+                if (expr[*pos] == 'o' && expr[*pos + 1] == 'g') {
+                    *op = LOG;
+                    (*pos) += 2;
+                } else if (expr[*pos] == 'n') {
+                    *op = LN;
+                    (*pos)++;
+                } else {
+                    printf("无效的函数名: l%c%c\n", expr[*pos], expr[*pos+1]);
+                    return -1; // 错误
+                }
+                break;
+            default:
+                printf("无效的字符: %c\n", c);
+                return -1; // 错误
+        }
+        return 0;  // 运算符
+    }
+}
+
+// 执行运算
+double calculate(Operator op, OpndStack *opndStack) {
+    double b, a, result = 0;
+    switch (op) {
+        case ADD:
+            b = popOpnd(opndStack);
+            a = popOpnd(opndStack);
+            result = a + b;
+            break;
+        case SUB:
+            b = popOpnd(opndStack);
+            a = popOpnd(opndStack);
+            result = a - b;
+            break;
+        case MUL:
+            b = popOpnd(opndStack);
+            a = popOpnd(opndStack);
+            result = a * b;
+            break;
+        case DIV:
+            b = popOpnd(opndStack);
+            a = popOpnd(opndStack);
+            if (b == 0) {
+                printf("除数不能为0\n");
+                exit(1);
+            }
+            result = a / b;
+            break;
+        case POW:
+            b = popOpnd(opndStack);
+            a = popOpnd(opndStack);
+            result = pow(a, b);
+            break;
+        case FAC:
+            a = popOpnd(opndStack);
+            if (a < 0 || (int)a != a) {
+                printf("阶乘仅适用于非负整数\n");
+                exit(1);
+            }
+            result = 1;
+            for (int i = 1; i <= (int)a; i++) {
+                result *= i;
+            }
+            break;
+        case SIN:
+            a = popOpnd(opndStack);
+            result = sin(a);  // 弧度制
+            break;
+        case COS:
+            a = popOpnd(opndStack);
+            result = cos(a);  // 弧度制
+            break;
+        case TAN:
+            a = popOpnd(opndStack);
+            result = tan(a);  // 弧度制
+            break;
+        case LOG:
+            a = popOpnd(opndStack);
+            if (a <= 0) {
+                printf("对数的参数必须大于0\n");
+                exit(1);
+            }
+            result = log10(a);
+            break;
+        case LN:
+            a = popOpnd(opndStack);
+            if (a <= 0) {
+                printf("自然对数的参数必须大于0\n");
+                exit(1);
+            }
+            result = log(a);
+            break;
+        default:
+            printf("无效的运算符\n");
+            exit(1);
+    }
+    return result;
+}
+
+// 比较运算符优先级
+char priority(Operator op1, Operator op2) {
+    return pri[op1][op2];
+}
+
+// 计算表达式的值，返回1表示成功，0表示失败
+int evaluateExpression(const char *expr, double *result) {
+    OpndStack opndStack;
+    OptrStack optrStack;
+    double num;
+    Operator op, topOp;
+    int pos = 0;
+    int tokenResult;
+
+    initOpndStack(&opndStack);
+    initOptrStack(&optrStack);
+
+    pushOptr(&optrStack, EOE);  // 初始化为终止符
+
+    while (1) {
+        tokenResult = getNextToken(expr, &pos, &num, &op);
+        if (tokenResult == -1) {
+            return 0;  // 解析错误
+        }
+        
+        if (tokenResult == 1) {
+            pushOpnd(&opndStack, num);
+        } else {
+            while (priority(getTopOptr(&optrStack), op) == '>') {
+                topOp = popOptr(&optrStack);
+                if (topOp == EOE) {
+                    *result = getTopOpnd(&opndStack);
+                    return 1;
+                }
+                double res = calculate(topOp, &opndStack);
+                pushOpnd(&opndStack, res);
+            }
+
+            if (priority(getTopOptr(&optrStack), op) == '<') {
+                pushOptr(&optrStack, op);
+            } else if (priority(getTopOptr(&optrStack), op) == '=') {
+                popOptr(&optrStack);  // 弹出 '('
+                if (op != R_P) {
+                    pushOptr(&optrStack, op);
+                }
+            } else {
+                // 优先级不匹配，表达式无效
+                return 0;
+            }
+
+            if (op == EOE && getTopOptr(&optrStack) == EOE) {
+                break;
+            }
+        }
+    }
+
+    *result = getTopOpnd(&opndStack);
+    return 1;
+}
+
+int main() {
+    // 定义测试案例，使用const char*避免字符串常量转换警告
+    const char *testCases[] = {
+        "2+3*4",
+        "(1+2)*3!",
+        "2^3^2",
+        "5!",
+        "2*(3+4)"
+    };
+    int numTests = sizeof(testCases) / sizeof(testCases[0]);
+    
+    printf("字符串计算器测试案例:\n");
+    printf("======================\n");
+    
+    for (int i = 0; i < numTests; i++) {
+        double result;
+        int valid = evaluateExpression(testCases[i], &result);
+        
+        printf("%s\t", testCases[i]);
+        if (valid) {
+            printf("%.6f\n", result);
+        } else {
+            printf("表达式无效\n");
+        }
+    }
+    
+    return 0;
+}
