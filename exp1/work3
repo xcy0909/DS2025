@@ -1,0 +1,101 @@
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+class Solution {
+public:
+    int largestRectangleArea(vector<int>& heights) {
+        int n = heights.size();
+        stack<int> st;
+        vector<int> left(n, 0);  // 左边第一个比当前柱子矮的索引
+        vector<int> right(n, 0); // 右边第一个比当前柱子矮的索引
+
+        // 找到左边第一个比当前柱子矮的索引
+        for (int i = 0; i < n; ++i) {
+            while (!st.empty() && heights[st.top()] >= heights[i]) {
+                st.pop();
+            }
+            left[i] = st.empty() ? -1 : st.top();
+            st.push(i);
+        }
+
+        // 清空栈
+        while (!st.empty()) st.pop();
+
+        // 找到右边第一个比当前柱子矮的索引
+        for (int i = n - 1; i >= 0; --i) {
+            while (!st.empty() && heights[st.top()] >= heights[i]) {
+                st.pop();
+            }
+            right[i] = st.empty() ? n : st.top();
+            st.push(i);
+        }
+
+        // 计算最大面积
+        int maxArea = 0;
+        for (int i = 0; i < n; ++i) {
+            maxArea = max(maxArea, heights[i] * (right[i] - left[i] - 1));
+        }
+
+        return maxArea;
+    }
+};
+
+// 随机生成测试数据
+vector<int> generateRandomHeights(int length, int max_height) {
+    vector<int> heights;
+    for (int i = 0; i < length; ++i) {
+        heights.push_back(rand() % (max_height + 1));
+    }
+    return heights;
+}
+
+int main() {
+    // 设置随机种子
+    srand(time(0));
+
+    Solution solution;
+
+    // 测试示例 1
+    vector<int> heights1 = {2, 1, 5, 6, 2, 3};
+    cout << "示例 1:" << endl;
+    cout << "输入: heights = [";
+    for (size_t i = 0; i < heights1.size(); ++i) {
+        cout << heights1[i];
+        if (i != heights1.size() - 1) cout << ", ";
+    }
+    cout << "]" << endl;
+    cout << "输出: " << solution.largestRectangleArea(heights1) << endl << endl;
+
+    // 测试示例 2
+    vector<int> heights2 = {2, 4};
+    cout << "示例 2:" << endl;
+    cout << "输入: heights = [";
+    for (size_t i = 0; i < heights2.size(); ++i) {
+        cout << heights2[i];
+        if (i != heights2.size() - 1) cout << ", ";
+    }
+    cout << "]" << endl;
+    cout << "输出: " << solution.largestRectangleArea(heights2) << endl << endl;
+
+    // 随机生成 10 组数据进行测试
+    cout << "随机生成 10 组数据进行测试:" << endl;
+    for (int i = 1; i <= 10; ++i) {
+        int length = rand() % 105 + 1; 
+        vector<int> heights = generateRandomHeights(length, 104); // 生成随机高度数组
+        cout << "测试用例 " << i << ":" << endl;
+        cout << "输入: heights = [";
+        for (size_t j = 0; j < heights.size(); ++j) {
+            cout << heights[j];
+            if (j != heights.size() - 1) cout << ", ";
+        }
+        cout << "]" << endl;
+        cout << "输出: " << solution.largestRectangleArea(heights) << endl << endl;
+    }
+
+    return 0;
+}
