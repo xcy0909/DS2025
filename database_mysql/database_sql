@@ -1,0 +1,65 @@
+CREATE DATABASE IF NOT EXISTS student_score_system 
+DEFAULT CHARACTER SET utf8mb4 
+DEFAULT COLLATE utf8mb4_general_ci;
+
+USE student_score_system;
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,  
+    password VARCHAR(100) NOT NULL,       
+    role VARCHAR(20) NOT NULL DEFAULT 'teacher'  
+);
+
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+    student_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    grade VARCHAR(20) NOT NULL,  -- 年级（如2023级）
+    major VARCHAR(50) NOT NULL,  -- 专业（如计算机科学）
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS scores;
+CREATE TABLE scores (
+    score_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    course VARCHAR(50) NOT NULL,
+    score INT NOT NULL CHECK (score BETWEEN 0 AND 100),  -- 成绩范围限制
+    exam_time DATE NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
+);
+
+-- 插入初始化数据
+
+INSERT INTO users (username, password, role) 
+VALUES 
+('admin', '123456', 'admin'),          -- 默认管理员
+('teacher1', '123456', 'teacher'),     -- 测试教师账号
+('18357083822', 'Zz220735', 'admin'); -- 指定登录账号（管理员权限）
+
+INSERT INTO students (name, gender, grade, major)
+VALUES 
+('张三', '男', '2023级', '计算机科学'),
+('李四', '女', '2023级', '软件工程'),
+('王五', '男', '2022级', '计算机科学'),
+('赵六', '男', '2023级', '软件工程'),
+('孙七', '女', '2022级', '计算机科学'),
+('周八', '男', '2023级', '数据科学');
+
+-- 插入成绩测试数据
+INSERT INTO scores (student_id, course, score, exam_time)
+VALUES 
+(1, '数据库原理', 85, '2024-06-15'),
+(1, 'Python编程', 92, '2024-06-20'),
+(2, '数据库原理', 78, '2024-06-15'),
+(2, 'Python编程', 88, '2024-06-20'),
+(3, '数据库原理', 90, '2024-06-15'),
+(3, 'Python编程', 83, '2024-06-20'),
+(4, '数据库原理', 65, '2024-06-15'),
+(4, 'Python编程', 72, '2024-06-20'),
+(5, '数据库原理', 88, '2024-06-15'),
+(5, 'Python编程', 95, '2024-06-20'),
+(6, '数据库原理', 59, '2024-06-15'),
+(6, 'Python编程', 78, '2024-06-20');
