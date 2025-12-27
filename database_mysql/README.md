@@ -7,4 +7,4 @@
   ├── models.py     # 数据模型定义
   └── config.py     # 数据库和会话配置
 
-  运行程序需运行app.py
+  程序需运行app.py
